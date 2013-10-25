@@ -40,28 +40,28 @@ struct exec_info
 tid_t
 process_execute (const char *file_name) 
 {
-  struct exec_info exec;
-  char thread_name[16];
+
+  char *filename_to_parse;
   char *save_ptr;
   tid_t tid;
 
-  /* Initialize exec_info. */
-  exec.file_name = file_name;
-  sema_init (&exec.load_done, 0);
+  /* Get a copy of filename, this prevents data races between the caller and load() */
+  filename_parsed = palloc_get_page(0);
+  if(filename_parsed == NULL)
+  {
+    return TID_ERROR;
+  }
+  strlcpy(filename_to_parse, file_name, PGSIZE);
+
+  /* Get the name of the running thread (first parsed token) */
+  file_name = strtok_r(file_name, " ", &save_ptr);
 
   /* Create a new thread to execute FILE_NAME. */
-  strlcpy (thread_name, file_name, sizeof thread_name);
-  strtok_r (thread_name, " ", &save_ptr);
-  tid = thread_create (thread_name, PRI_DEFAULT, start_process, &exec);
-  if (tid != TID_ERROR)
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, filename_to_parse);
+  if (tid == TID_ERROR)
     {
-      sema_down (&exec.load_done);
-      if (exec.success)
-        list_push_back (&thread_current ()->children, &exec.wait_status->elem);
-      else
-        tid = TID_ERROR;
+      palloc_free_page( filename_to_parse );
     }
-
   return tid;
 }
 
@@ -608,6 +608,8 @@ setup_stack (const char *cmd_line, void **esp)
       else
         palloc_free_page (kpage);
     }
+
+
   return success;
 }
 
