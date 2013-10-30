@@ -63,15 +63,16 @@ syscall_handler (struct intr_frame *f UNUSED)
 	{1, (syscall_function *) sys_wait},
 	{2, (syscall_function *) sys_create},
 	{1, (syscall_function *) sys_remove},
-    {1, (syscall_function *) sys_open}
+    {1, (syscall_function *) sys_open},
+	{1, (syscall_function *) sys_filesize},
+	{3, (syscall_function *) sys_read},
+	{3, (syscall_function *) sys_write}
   };
   
   const struct syscall *sc;
   unsigned call_nr;
   int args[3];
-  printf("here1\n");
   copy_in (&call_nr, f->esp, sizeof call_nr);
-  printf("call num = %d\n", call_nr);
   if (call_nr >= sizeof syscall_table / sizeof *syscall_table)
     thread_exit ();
   sc = syscall_table + call_nr;
@@ -79,7 +80,6 @@ syscall_handler (struct intr_frame *f UNUSED)
   ASSERT (sc->arg_cnt <= sizeof args/ sizeof *args);
   memset (args, 0, sizeof args);
   copy_in (args, (uint32_t *) f->esp + 1, sizeof *args * sc->arg_cnt);
-  printf("here2\n");
   f->eax = sc->func (args[0], args[1], args[2]);
   
   
@@ -223,7 +223,7 @@ sys_open (const char *ufile)
   char *kfile = copy_in_string (ufile);
   struct file_descriptor *fd;
   int handle = -1;
- 
+  
   fd = malloc (sizeof *fd);
   if (fd != NULL)
     {
@@ -231,12 +231,14 @@ sys_open (const char *ufile)
       fd->file = filesys_open (kfile);
       if (fd->file != NULL)
         {
-          struct thread *cur = thread_current ();
+		  struct thread *cur = thread_current ();
           handle = fd->handle = cur->next_handle++;
           list_push_front (&cur->fds, &fd->elem);
         }
-      else 
+      else
+      { 
         free (fd);
+	  }
       lock_release (&fs_lock);
     }
   
