@@ -197,6 +197,7 @@ sys_wait (tid_t child)
 static int
 sys_create (const char *ufile, unsigned initial_size) 
 {
+  //In the process of figuring out what struct file contains.
   return 0;
 }
  
@@ -249,7 +250,18 @@ sys_open (const char *ufile)
 static struct file_descriptor *
 lookup_fd (int handle)
 {
-/* Add code to lookup file descriptor in the current thread's fds */
+  /* Add code to lookup file descriptor in the current thread's fds */
+  //Added from a handout he gave in class. Hopefully this is what we are supposed to do.
+  struct thread * cur = thread_current();
+  struct list_elem * e;
+  
+  for(e = list_begin(&cur->fds); e != list_end(&cur->fds); e = list_next(e))
+  {
+    struct file_descriptor * fd;
+    fd = list_entry(e, struct file_descriptor, elem);
+    if(fd->handle == handle)
+      return fd;
+  }
   thread_exit ();
 }
  
