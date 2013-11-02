@@ -266,10 +266,10 @@ lookup_fd (int handle)
   //Added from a handout he gave in class. Hopefully this is what we are supposed to do.
   struct thread * cur = thread_current();
   struct list_elem * e;
+  struct file_descriptor * fd;
   
   for(e = list_begin(&cur->fds); e != list_end(&cur->fds); e = list_next(e))
   {
-    struct file_descriptor * fd;
     fd = list_entry(e, struct file_descriptor, elem);
     if(fd->handle == handle)
       return fd;
@@ -281,7 +281,16 @@ lookup_fd (int handle)
 static int
 sys_filesize (int handle) 
 {
-/* Add code */
+  struct file_descriptor * fd;
+
+  if(handle != STDOUT_FILENO)
+  {
+    fd = lookup_fd(handle);
+    if(!fd)
+    {
+      return file_length(fd->file);
+    }
+  }
   thread_exit ();
 }
  
@@ -289,7 +298,17 @@ sys_filesize (int handle)
 static int
 sys_read (int handle, void *udst_, unsigned size) 
 {
-/* Add code */
+  struct file_descriptor * fd;
+
+  if(handle != STDOUT_FILENO && !udst_ && size > 0)
+  {
+    fd = lookup_fd(handle);
+    if(!fd)
+    {
+      file_read(fd->file, udst, size);
+      return udst;
+    }
+  }
   thread_exit ();
 }
  

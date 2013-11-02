@@ -8,8 +8,8 @@ sys_wait
 sys_create		JO		JO
 sys_remove		JO		JO
 sys_open		JJ
-sys_filesize
-sys_read
+sys_filesize		JO		JO
+sys_read		JO		JO
 sys_write
 sys_seek
 sys_tell
