@@ -66,7 +66,10 @@ syscall_handler (struct intr_frame *f UNUSED)
     {1, (syscall_function *) sys_open},
 	{1, (syscall_function *) sys_filesize},
 	{3, (syscall_function *) sys_read},
-	{3, (syscall_function *) sys_write}
+	{3, (syscall_function *) sys_write},
+	{2, (syscall_function *) sys_seek},
+	{1, (syscall_function *) sys_tell},
+	{1, (syscall_function *) sys_close}
   };
   
   const struct syscall *sc;
@@ -172,8 +175,10 @@ sys_halt (void)
 static int
 sys_exit (int exit_code) 
 {
+  printf("exit system call\n");
   thread_current ()->wait_status->exit_code = exit_code;
-  thread_exit ();
+  //thread_exit ();
+  while(1);  
   NOT_REACHED ();
 }
  
@@ -223,11 +228,10 @@ sys_open (const char *ufile)
   char *kfile = copy_in_string (ufile);
   struct file_descriptor *fd;
   int handle = -1;
-  
   fd = malloc (sizeof *fd);
   if (fd != NULL)
     {
-      lock_acquire (&fs_lock);
+	  lock_acquire (&fs_lock);
       fd->file = filesys_open (kfile);
       if (fd->file != NULL)
         {
@@ -264,7 +268,7 @@ lookup_fd (int handle)
     if(fd->handle == handle)
       return fd;
   }
-  thread_exit ();
+  return NULL;
 }
  
 /* Filesize system call. */
@@ -360,7 +364,9 @@ static int
 sys_close (int handle) 
 {
 /* Add code */
-  thread_exit ();
+  struct file_descriptor *fd = handle;
+  file_close(fd->file);
+  return 1;
 }
  
 /* On thread exit, close all open files. */
@@ -368,5 +374,17 @@ void
 syscall_exit (void) 
 {
 /* Add code */
+  struct thread * cur = thread_current();
+  struct list_elem * e;
+  struct file_descriptor * fd;
+  
+  for(e = list_begin(&cur->fds); e != list_end(&cur->fds); e = list_next(e))
+  {
+    fd = list_entry(e, struct file_descriptor, elem);
+    lock_acquire (&fs_lock);
+    file_close(fd->file);
+    lock_release (&fs_lock);
+	free(fd);
+  }
   return;
 }
