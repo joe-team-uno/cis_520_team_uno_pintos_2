@@ -167,7 +167,7 @@ process_exit (void)
       
       /* add code */
 	  sema_up(&cs->dead);
-      printf ("%s: exit(0)\n", cur->name); // HACK all successful ;-)
+      printf ("%s: exit(%d)\n", cur->name, cs->exit_code); // HACK all successful ;-)
 
       release_child (cs);
     }
