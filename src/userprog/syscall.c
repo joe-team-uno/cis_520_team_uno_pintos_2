@@ -304,7 +304,7 @@ sys_read (int handle, void *udst_, unsigned size)
 {
   struct file_descriptor * fd;
 
-  if(handle != STDOUT_FILENO && !udst_ && size > 0)
+  /*if(handle != STDOUT_FILENO && !udst_ && size > 0)
   {
     fd = lookup_fd(handle);
     if(!fd)
@@ -312,7 +312,27 @@ sys_read (int handle, void *udst_, unsigned size)
       file_read(fd->file, udst_, size);
       return udst_;
     }
+  }*/
+  if( handle == STDIN_FILENO )
+  {
+	int i;
+    uint8_t *buffer = (uint8_t *) udst_;
+    for(i = 0; i < size; i++)
+	{
+      buffer[i] = input_getc();
+	}
+	return size;
   }
+  lock_acquire (&fs_lock);
+  fd = lookup_fd(handle);
+  if(fd == NULL)
+  {
+	lock_release (&fs_lock);
+	return -1;
+  }
+  int ret = file_read(fd->file, udst_, size);
+  lock_release (&fs_lock);
+  return ret;
   thread_exit ();
 }
  
