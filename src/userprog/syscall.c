@@ -202,15 +202,25 @@ sys_wait (tid_t child)
 static int
 sys_create (const char *ufile, unsigned initial_size) 
 {
-  //In the process of figuring out what struct file contains.
-  return 0;
+    //REMOVE COMMENT BEFORE SUBMITTING
+    //filesys.c contains this function, do you guys think it needs something else?
+    //Or should it be tracking something too and should it initialize the file system first by calling filesys_init()
+    if (!ufile)
+      return sys_exit (-1);
+
+    return filesys_create (ufile, initial_size);
 }
  
 /* Remove system call. */
 static int
 sys_remove (const char *ufile) 
 {
-/* Add code */
+      //REMOVE COMMENT BEFORE SUBMITTING.
+      //Again, this is very similar to sys_create and filesys.c contains this function, do you guys think it needs something else?
+      if(!ufile)
+          return sys_exit(-1);
+
+      return filesys_remove(ufile);
 }
  
 /* A file descriptor, for binding a file handle to a file. */
@@ -234,15 +244,15 @@ sys_open (const char *ufile)
 	  lock_acquire (&fs_lock);
       fd->file = filesys_open (kfile);
       if (fd->file != NULL)
-        {
-		  struct thread *cur = thread_current ();
+      {
+	    struct thread *cur = thread_current ();
           handle = fd->handle = cur->next_handle++;
           list_push_front (&cur->fds, &fd->elem);
-        }
+      }
       else
       { 
-        free (fd);
-	  }
+          free (fd);
+	}
       lock_release (&fs_lock);
     }
   
@@ -260,10 +270,10 @@ lookup_fd (int handle)
   //Added from a handout he gave in class. Hopefully this is what we are supposed to do.
   struct thread * cur = thread_current();
   struct list_elem * e;
+  struct file_descriptor * fd;
   
   for(e = list_begin(&cur->fds); e != list_end(&cur->fds); e = list_next(e))
   {
-    struct file_descriptor * fd;
     fd = list_entry(e, struct file_descriptor, elem);
     if(fd->handle == handle)
       return fd;
@@ -275,7 +285,16 @@ lookup_fd (int handle)
 static int
 sys_filesize (int handle) 
 {
-/* Add code */
+  struct file_descriptor * fd;
+
+  if(handle != STDOUT_FILENO)
+  {
+    fd = lookup_fd(handle);
+    if(!fd)
+    {
+      return file_length(fd->file);
+    }
+  }
   thread_exit ();
 }
  
@@ -283,7 +302,17 @@ sys_filesize (int handle)
 static int
 sys_read (int handle, void *udst_, unsigned size) 
 {
-/* Add code */
+  struct file_descriptor * fd;
+
+  if(handle != STDOUT_FILENO && !udst_ && size > 0)
+  {
+    fd = lookup_fd(handle);
+    if(!fd)
+    {
+      file_read(fd->file, udst, size);
+      return udst;
+    }
+  }
   thread_exit ();
 }
  
