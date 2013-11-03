@@ -148,7 +148,9 @@ copy_in_string (const char *us)
  
   ks = palloc_get_page (0);
   if (ks == NULL)
+  {
     thread_exit ();
+  }
  
   for (length = 0; length < PGSIZE; length++)
     {
@@ -175,10 +177,8 @@ sys_halt (void)
 static int
 sys_exit (int exit_code) 
 {
-  printf("exit system call\n");
   thread_current ()->wait_status->exit_code = exit_code;
-  //thread_exit ();
-  while(1);  
+  thread_exit ();
   NOT_REACHED ();
 }
  
@@ -309,8 +309,8 @@ sys_read (int handle, void *udst_, unsigned size)
     fd = lookup_fd(handle);
     if(!fd)
     {
-      file_read(fd->file, udst, size);
-      return udst;
+      file_read(fd->file, udst_, size);
+      return udst_;
     }
   }
   thread_exit ();

@@ -2,15 +2,15 @@ This file is to keep track of which system calls are being worked on. Just place
 
 System Call		Started		Completed
 sys_halt				Finished
-sys_exit
+sys_exit		
 sys_exec
 sys_wait
 sys_create		JO		JO
 sys_remove		JO		JO
-sys_open		JJ
+sys_open				done
 sys_filesize		JO		JO
 sys_read		JO		JO
-sys_write
+sys_write				done
 sys_seek
 sys_tell
 sys_close
