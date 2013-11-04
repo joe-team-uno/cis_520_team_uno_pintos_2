@@ -278,7 +278,7 @@ lookup_fd (int handle)
     if(fd->handle == handle)
       return fd;
   }
-  return NULL;
+  return 0;
 }
  
 /* Filesize system call. */
@@ -286,15 +286,14 @@ static int
 sys_filesize (int handle) 
 {
   struct file_descriptor * fd;
-
-  if(handle != STDOUT_FILENO)
+    
+  fd = lookup_fd(handle);
+  if(fd != 0)
   {
-    fd = lookup_fd(handle);
-    if(!fd)
-    {
-      return file_length(fd->file);
-    }
+    return file_length(fd->file);
   }
+  
+  return -1;
   thread_exit ();
 }
  
@@ -413,9 +412,11 @@ static int
 sys_close (int handle) 
 {
 /* Add code */
-  struct file_descriptor *fd = handle;
+  struct file_descriptor *fd;
+  fd = lookup_fd (handle);
   file_close(fd->file);
-  return 1;
+  free(fd);
+  return 0;
 }
  
 /* On thread exit, close all open files. */
