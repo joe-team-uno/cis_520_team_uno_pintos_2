@@ -1,5 +1,6 @@
 This file is to keep track of which system calls are being worked on. Just place initials when started and completed so we don't work on the same ones.
 
+<<<<<<< HEAD
 System Call		Stared		Completed
 sys_halt				Finished
 sys_exit
@@ -11,6 +12,19 @@ sys_open
 sys_filesize
 sys_read
 sys_write
+=======
+System Call		Started		Completed
+sys_halt				Finished
+sys_exit		
+sys_exec
+sys_wait
+sys_create		JO		JO
+sys_remove		JO		JO
+sys_open				done
+sys_filesize		JO		JO
+sys_read		JO		JO
+sys_write				done
+>>>>>>> 7839e6374f3d2ffc68494c7577f50d298e3045a2
 sys_seek
 sys_tell
 sys_close

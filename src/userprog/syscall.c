@@ -62,15 +62,19 @@ syscall_handler (struct intr_frame *f UNUSED)
 	{1, (syscall_function *) sys_wait},
 	{2, (syscall_function *) sys_create},
 	{1, (syscall_function *) sys_remove},
-    {1, (syscall_function *) sys_open}
+    {1, (syscall_function *) sys_open},
+	{1, (syscall_function *) sys_filesize},
+	{3, (syscall_function *) sys_read},
+	{3, (syscall_function *) sys_write},
+	{2, (syscall_function *) sys_seek},
+	{1, (syscall_function *) sys_tell},
+	{1, (syscall_function *) sys_close}
   };
   
   const struct syscall *sc;
   unsigned call_nr;
   int args[3];
-  printf("here1\n");
   copy_in (&call_nr, f->esp, sizeof call_nr);
-  printf("call num = %d\n", call_nr);
   if (call_nr >= sizeof syscall_table / sizeof *syscall_table)
     thread_exit ();
   sc = syscall_table + call_nr;
@@ -78,7 +82,6 @@ syscall_handler (struct intr_frame *f UNUSED)
   ASSERT (sc->arg_cnt <= sizeof args/ sizeof *args);
   memset (args, 0, sizeof args);
   copy_in (args, (uint32_t *) f->esp + 1, sizeof *args * sc->arg_cnt);
-  printf("here2\n");
   f->eax = sc->func (args[0], args[1], args[2]);
   
   
@@ -144,7 +147,9 @@ copy_in_string (const char *us)
  
   ks = palloc_get_page (0);
   if (ks == NULL)
+  {
     thread_exit ();
+  }
  
   for (length = 0; length < PGSIZE; length++)
     {
@@ -181,6 +186,10 @@ static int
 sys_exec (const char *ufile) 
 {
 /* Add code */
+  /*lock_acquire (&fs_lock);
+  int ret = process_execute(ufile);
+  lock_release (&fs_lock);
+  return ret;*/
   thread_exit ();
 }
  
@@ -189,6 +198,7 @@ static int
 sys_wait (tid_t child) 
 {
 /* Add code */
+  //return process_wait(child);
   thread_exit ();
 }
  
@@ -196,15 +206,30 @@ sys_wait (tid_t child)
 static int
 sys_create (const char *ufile, unsigned initial_size) 
 {
+<<<<<<< HEAD
   //In the process of figuring out what struct file contains.
   return 0;
+=======
+    //REMOVE COMMENT BEFORE SUBMITTING
+    //filesys.c contains this function, do you guys think it needs something else?
+    //Or should it be tracking something too and should it initialize the file system first by calling filesys_init()
+    if (!ufile)
+      return sys_exit (-1);
+
+    return filesys_create (ufile, initial_size);
+>>>>>>> 7839e6374f3d2ffc68494c7577f50d298e3045a2
 }
  
 /* Remove system call. */
 static int
 sys_remove (const char *ufile) 
 {
-/* Add code */
+      //REMOVE COMMENT BEFORE SUBMITTING.
+      //Again, this is very similar to sys_create and filesys.c contains this function, do you guys think it needs something else?
+      if(!ufile)
+          return sys_exit(-1);
+
+      return filesys_remove(ufile);
 }
  
 /* A file descriptor, for binding a file handle to a file. */
@@ -222,20 +247,21 @@ sys_open (const char *ufile)
   char *kfile = copy_in_string (ufile);
   struct file_descriptor *fd;
   int handle = -1;
- 
   fd = malloc (sizeof *fd);
   if (fd != NULL)
     {
-      lock_acquire (&fs_lock);
+	  lock_acquire (&fs_lock);
       fd->file = filesys_open (kfile);
       if (fd->file != NULL)
-        {
-          struct thread *cur = thread_current ();
+      {
+	    struct thread *cur = thread_current ();
           handle = fd->handle = cur->next_handle++;
           list_push_front (&cur->fds, &fd->elem);
-        }
-      else 
-        free (fd);
+      }
+      else
+      { 
+          free (fd);
+	}
       lock_release (&fs_lock);
     }
   
@@ -253,22 +279,41 @@ lookup_fd (int handle)
   //Added from a handout he gave in class. Hopefully this is what we are supposed to do.
   struct thread * cur = thread_current();
   struct list_elem * e;
+<<<<<<< HEAD
   
   for(e = list_begin(&cur->fds); e != list_end(&cur->fds); e = list_next(e))
   {
     struct file_descriptor * fd;
+=======
+  struct file_descriptor * fd;
+  
+  for(e = list_begin(&cur->fds); e != list_end(&cur->fds); e = list_next(e))
+  {
+>>>>>>> 7839e6374f3d2ffc68494c7577f50d298e3045a2
     fd = list_entry(e, struct file_descriptor, elem);
     if(fd->handle == handle)
       return fd;
   }
+<<<<<<< HEAD
   thread_exit ();
+=======
+  return NULL;
+>>>>>>> 7839e6374f3d2ffc68494c7577f50d298e3045a2
 }
  
 /* Filesize system call. */
 static int
 sys_filesize (int handle) 
 {
-/* Add code */
+  struct file_descriptor * fd;
+    
+  fd = lookup_fd(handle);
+  if(fd != 0)
+  {
+    return file_length(fd->file);
+  }
+  
+  return -1;
   thread_exit ();
 }
  
@@ -276,7 +321,37 @@ sys_filesize (int handle)
 static int
 sys_read (int handle, void *udst_, unsigned size) 
 {
-/* Add code */
+  struct file_descriptor * fd;
+
+  /*if(handle != STDOUT_FILENO && !udst_ && size > 0)
+  {
+    fd = lookup_fd(handle);
+    if(!fd)
+    {
+      file_read(fd->file, udst_, size);
+      return udst_;
+    }
+  }*/
+  if( handle == STDIN_FILENO )
+  {
+	int i;
+    uint8_t *buffer = (uint8_t *) udst_;
+    for(i = 0; i < size; i++)
+	{
+      buffer[i] = input_getc();
+	}
+	return size;
+  }
+  lock_acquire (&fs_lock);
+  fd = lookup_fd(handle);
+  if(fd == NULL)
+  {
+	lock_release (&fs_lock);
+	return -1;
+  }
+  int ret = file_read(fd->file, udst_, size);
+  lock_release (&fs_lock);
+  return ret;
   thread_exit ();
 }
  
@@ -291,7 +366,7 @@ sys_write (int handle, void *usrc_, unsigned size)
   /* Lookup up file descriptor. */
   if (handle != STDOUT_FILENO)
     fd = lookup_fd (handle);
-
+  
   lock_acquire (&fs_lock);
   while (size > 0) 
     {
@@ -357,7 +432,13 @@ static int
 sys_close (int handle) 
 {
 /* Add code */
-  thread_exit ();
+  struct file_descriptor *fd;
+  fd = lookup_fd (handle);
+  if( fd == NULL )
+	return -1;
+  file_close(fd->file);
+  free(fd);
+  return 0;
 }
  
 /* On thread exit, close all open files. */
@@ -365,6 +446,18 @@ void
 syscall_exit (void) 
 {
 /* Add code */
+  struct thread * cur = thread_current();
+  struct list_elem * e;
+  struct file_descriptor * fd;
+  
+  for(e = list_begin(&cur->fds); e != list_end(&cur->fds); e = list_next(e))
+  {
+    fd = list_entry(e, struct file_descriptor, elem);
+    lock_acquire (&fs_lock);
+    file_close(fd->file);
+    lock_release (&fs_lock);
+	free(fd);
+  }
   return;
 }
 

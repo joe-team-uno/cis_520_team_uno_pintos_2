@@ -137,7 +137,7 @@ extern bool thread_mlfqs;
 
 void thread_init (void);
 void thread_start (void);
-
+struct thread * get_thread_by_tid (tid_t tid);
 void thread_tick (void);
 void thread_print_stats (void);
 

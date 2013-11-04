@@ -74,11 +74,14 @@ start_process (void *file_name_)
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
+<<<<<<< HEAD
 
   char *save_ptr;
   file_name = strtok_r(file_name, " ", &save_ptr);
   
 
+=======
+>>>>>>> 7839e6374f3d2ffc68494c7577f50d298e3045a2
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
@@ -135,7 +138,15 @@ release_child (struct wait_status *cs)
 int
 process_wait (tid_t child_tid) 
 {
-  return -1;
+  struct thread *t;
+  int ret;
+  ret = -1;
+  t = get_thread_by_tid(child_tid);
+  
+  sema_down(&t->wait_status->dead);
+  
+  ret = t->wait_status->exit_code;
+  return ret;
 }
 
 /* Free the current process's resources. */
@@ -153,9 +164,10 @@ process_exit (void)
   if (cur->wait_status != NULL) 
     {
       struct wait_status *cs = cur->wait_status;
-
+      
       /* add code */
-      printf ("%s: exit(0)\n", cur->name); // HACK all successful ;-)
+	  sema_up(&cs->dead);
+      printf ("%s: exit(%d)\n", cur->name, cs->exit_code); // HACK all successful ;-)
 
       release_child (cs);
     }
@@ -166,6 +178,7 @@ process_exit (void)
     {
       struct wait_status *cs = list_entry (e, struct wait_status, elem);
       next = list_remove (e);
+      
       release_child (cs);
     }
   
@@ -185,6 +198,7 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+  
 }
 
 /* Sets up the CPU for running user code in the current
