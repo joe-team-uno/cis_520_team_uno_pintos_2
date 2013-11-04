@@ -207,21 +207,16 @@ sys_wait (tid_t child)
 static int
 sys_create (const char *ufile, unsigned initial_size) 
 {
-    //REMOVE COMMENT BEFORE SUBMITTING
-    //filesys.c contains this function, do you guys think it needs something else?
-    //Or should it be tracking something too and should it initialize the file system first by calling filesys_init()
-    if (!ufile)
+    if (ufile == NULL)
       return sys_exit (-1);
-
-    return filesys_create (ufile, initial_size);
+    
+    return filesys_create (ufile, (off_t) initial_size);
 }
  
 /* Remove system call. */
 static int
 sys_remove (const char *ufile) 
 {
-      //REMOVE COMMENT BEFORE SUBMITTING.
-      //Again, this is very similar to sys_create and filesys.c contains this function, do you guys think it needs something else?
       if(!ufile)
           return sys_exit(-1);
 
@@ -292,12 +287,14 @@ sys_filesize (int handle)
 {
   struct file_descriptor * fd;
     
-  fd = lookup_fd(handle);
-  if(fd != 0)
+  if(handle != STDIN_FILENO)
   {
-    return file_length(fd->file);
+    fd = lookup_fd(handle);
+    if(fd != NULL)
+    {
+      return file_length(fd->file);
+    }
   }
-  
   return -1;
   thread_exit ();
 }
@@ -401,14 +398,34 @@ static int
 sys_seek (int handle, unsigned position) 
 {
 /* Add code */
-  thread_exit ();
+  struct file_descriptor * fd;
+    
+  if(handle != STDIN_FILENO)
+  {
+    fd = lookup_fd(handle);
+    if(fd != NULL)
+    {
+      file_seek(fd->file, (off_t) position);
+    }
+  }
+  //thread_exit ();
 }
  
 /* Tell system call. */
 static int
 sys_tell (int handle) 
 {
-/* Add code */
+  /* Add code */
+  struct file_descriptor * fd;
+    
+  if(handle != STDIN_FILENO)
+  {
+    fd = lookup_fd(handle);
+    if(fd != NULL)
+    {
+      return file_tell(fd->file);
+    }
+  }
   thread_exit ();
 }
  
