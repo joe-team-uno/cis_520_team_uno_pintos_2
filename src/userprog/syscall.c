@@ -14,7 +14,6 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
  
- 
 static int sys_halt (void);
 static int sys_exit (int status);
 static int sys_exec (const char *ufile);
@@ -367,4 +366,56 @@ syscall_exit (void)
 {
 /* Add code */
   return;
+}
+
+struct child_process* add_child_process (int pid)
+{
+  struct child_process* cp = malloc(sizeof(struct child_process));
+  cp->pid = pid;
+  cp->load = NOT_LOADED;
+  cp->wait = false;
+  cp->exit = false;
+  lock_init(&cp->wait_lock);
+  list_push_back(&thread_current()->children,
+                 &cp->elem);
+  return cp;
+}
+
+struct child_process* get_child_process (int pid)
+{
+  struct thread *t = thread_current();
+  struct list_elem *e;
+
+  for (e = list_begin (&t->children); e != list_end (&t->children);
+       e = list_next (e))
+        {
+          struct child_process *cp = list_entry (e, struct child_process, elem);
+          if (pid == cp->pid)
+         {
+         return cp;
+         }
+        }
+  return NULL;
+}
+
+void remove_child_process (struct child_process *cp)
+{
+  list_remove(&cp->elem);
+  free(cp);
+}
+
+void remove_child_processes (void)
+{
+  struct thread *t = thread_current();
+  struct list_elem *next, *e = list_begin(&t->children);
+
+  while (e != list_end (&t->children))
+    {
+      next = list_next(e);
+      struct child_process *cp = list_entry (e, struct child_process,
+                                         elem);
+      list_remove(&cp->elem);
+      free(cp);
+      e = next;
+    }
 }

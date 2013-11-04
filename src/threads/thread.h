@@ -110,6 +110,9 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+
+    tid_t parent;
+    struct child_process* cp;
   };
 
 /* Tracks the completion of a process.
