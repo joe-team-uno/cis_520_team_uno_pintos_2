@@ -57,19 +57,19 @@ syscall_handler (struct intr_frame *f UNUSED)
 
   static const struct syscall syscall_table[]=
   {
-	{0, (syscall_function *) sys_halt},
-    {1, (syscall_function *) sys_exit},
-    {1, (syscall_function *) sys_exec},
-	{1, (syscall_function *) sys_wait},
-	{2, (syscall_function *) sys_create},
-	{1, (syscall_function *) sys_remove},
-    {1, (syscall_function *) sys_open},
-	{1, (syscall_function *) sys_filesize},
-	{3, (syscall_function *) sys_read},
-	{3, (syscall_function *) sys_write},
-	{2, (syscall_function *) sys_seek},
-	{1, (syscall_function *) sys_tell},
-	{1, (syscall_function *) sys_close}
+		{0, (syscall_function *) sys_halt},
+    	{1, (syscall_function *) sys_exit},
+    	{1, (syscall_function *) sys_exec},
+		{1, (syscall_function *) sys_wait},
+		{2, (syscall_function *) sys_create},
+		{1, (syscall_function *) sys_remove},
+    	{1, (syscall_function *) sys_open},
+		{1, (syscall_function *) sys_filesize},
+		{3, (syscall_function *) sys_read},
+		{3, (syscall_function *) sys_write},
+		{2, (syscall_function *) sys_seek},
+		{1, (syscall_function *) sys_tell},
+		{1, (syscall_function *) sys_close}
   };
   
   const struct syscall *sc;
@@ -397,10 +397,10 @@ sys_write (int handle, void *usrc_, unsigned size)
 static int
 sys_seek (int handle, unsigned position) 
 {
-/* Add code */
+	/* Add code */
   struct file_descriptor * fd;
     
-  if(handle != STDIN_FILENO)
+	//if(handle != STDIN_FILENO)
   {
     fd = lookup_fd(handle);
     if(fd != NULL)
