@@ -187,6 +187,10 @@ static int
 sys_exec (const char *ufile) 
 {
 /* Add code */
+  /*lock_acquire (&fs_lock);
+  int ret = process_execute(ufile);
+  lock_release (&fs_lock);
+  return ret;*/
   thread_exit ();
 }
  
@@ -195,6 +199,7 @@ static int
 sys_wait (tid_t child) 
 {
 /* Add code */
+  //return process_wait(child);
   thread_exit ();
 }
  
@@ -278,7 +283,7 @@ lookup_fd (int handle)
     if(fd->handle == handle)
       return fd;
   }
-  return 0;
+  return NULL;
 }
  
 /* Filesize system call. */
@@ -346,7 +351,7 @@ sys_write (int handle, void *usrc_, unsigned size)
   /* Lookup up file descriptor. */
   if (handle != STDOUT_FILENO)
     fd = lookup_fd (handle);
-
+  
   lock_acquire (&fs_lock);
   while (size > 0) 
     {
@@ -414,6 +419,8 @@ sys_close (int handle)
 /* Add code */
   struct file_descriptor *fd;
   fd = lookup_fd (handle);
+  if( fd == NULL )
+	return -1;
   file_close(fd->file);
   free(fd);
   return 0;
