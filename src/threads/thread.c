@@ -207,6 +207,11 @@ thread_create (const char *name, int priority,
 
   intr_set_level (old_level);
 
+  // Add child process to child list
+  t->parent = thread_tid();
+  struct child_process *cp = add_child_process(t->tid);
+  t->cp = cp;
+
   /* Add to run queue. */
   thread_unblock (t);
 
@@ -476,6 +481,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->next_handle = 2;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
+
+  t->cp = NULL;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
