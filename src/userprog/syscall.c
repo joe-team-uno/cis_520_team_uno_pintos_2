@@ -196,29 +196,23 @@ sys_wait (tid_t child)
 static int
 sys_create (const char *ufile, unsigned initial_size)
 {
-<<<<<<< HEAD
     if (ufile == NULL)
       return sys_exit (-1);
     
     return filesys_create (ufile, (off_t) initial_size);
-=======
+
   //In the process of figuring out what struct file contains.
   return 0;
->>>>>>> 3eafbc917d6ae2ebc051ce49f4e275e257383a1a
 }
  
 /* Remove system call. */
 static int
 sys_remove (const char *ufile)
 {
-<<<<<<< HEAD
       if(!ufile)
           return sys_exit(-1);
 
       return filesys_remove(ufile);
-=======
-/* Add code */
->>>>>>> 3eafbc917d6ae2ebc051ce49f4e275e257383a1a
 }
  
 /* A file descriptor, for binding a file handle to a file. */
@@ -282,7 +276,6 @@ lookup_fd (int handle)
 static int
 sys_filesize (int handle)
 {
-<<<<<<< HEAD
   struct file_descriptor * fd;
     
   if(handle != STDIN_FILENO)
@@ -294,10 +287,6 @@ sys_filesize (int handle)
     }
   }
   return -1;
-=======
-/* Add code */
->>>>>>> 3eafbc917d6ae2ebc051ce49f4e275e257383a1a
-  thread_exit ();
 }
  
 /* Read system call. */
