@@ -596,7 +596,7 @@ setup_stack (void **esp, const char* file_name, char **save_ptr)
   bool success = false;
   char *token;
   char **argv = malloc(DEFAULT_ARGV_SIZE*sizeof(char *));
-  int index, alignment;
+  int index = 0, alignment = 0;
   int argc = 0, argvSize = DEFAULT_ARGV_SIZE;
 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
@@ -606,7 +606,7 @@ setup_stack (void **esp, const char* file_name, char **save_ptr)
       success = install_page (upage, kpage, true);
       if (success)
       {
-        *esp = PHYS_BASE;
+        //*esp = PHYS_BASE;
       }
       else
         palloc_free_page (kpage);
@@ -636,7 +636,7 @@ setup_stack (void **esp, const char* file_name, char **save_ptr)
   //We must have esp aligned to four bytes (the word size).
   //Re-copy the last argument if we need to adjust for this.
   alignment = (size_t) *esp % WORD_SIZE;
-  if(index > 0)
+  if(alignment > 0)
   {
     *esp -= alignment;
     memcpy(*esp, &argv[argc], alignment);
