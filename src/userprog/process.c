@@ -74,14 +74,10 @@ start_process (void *file_name_)
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
-<<<<<<< HEAD
 
   char *save_ptr;
   file_name = strtok_r(file_name, " ", &save_ptr);
   
-
-=======
->>>>>>> 7839e6374f3d2ffc68494c7577f50d298e3045a2
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
