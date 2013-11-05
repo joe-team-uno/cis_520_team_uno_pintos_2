@@ -54,13 +54,13 @@ process_execute (const char *file_name)
   strtok_r (thread_name, " ", &save_ptr);
   tid = thread_create (thread_name, PRI_DEFAULT, start_process, &exec);
   if (tid != TID_ERROR)
-    {
-      sema_down (&exec.load_done);
-      if (exec.success)
-        list_push_back (&thread_current ()->children, &exec.wait_status->elem);
-      else
-        tid = TID_ERROR;
-    }
+  {
+    sema_down (&exec.load_done);
+    if (exec.success)
+      list_push_back (&thread_current ()->children, &exec.wait_status->elem);
+    else
+      tid = TID_ERROR;
+  }
 
   return tid;
 }
@@ -138,14 +138,18 @@ release_child (struct wait_status *cs)
 int
 process_wait (tid_t child_tid) 
 {
-  struct thread *t;
+  struct thread *t = NULL;
   int ret;
   ret = -1;
   t = get_thread_by_tid(child_tid);
-  
-  sema_down(&t->wait_status->dead);
-  
-  ret = t->wait_status->exit_code;
+  if(t != NULL)
+	{
+	  sema_down(&t->wait_status->dead);
+		ret = t->wait_status->exit_code;
+  }
+  else
+		process_exit();
+
   return ret;
 }
 
@@ -525,12 +529,19 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
 /* Reverse the order of the ARGC pointers to char in ARGV. */
 static void
-reverse (int argc, char **argv) 
+reverse (int argc, char **argv)
 {
-   /* add code */
+  char *swap;
+  int index;
 
-   return;
-}
+   for(index = 0; index < argc / 2; index++)
+   {
+      swap = argv[index];
+      argv[index] = argv[argc-1-index];
+      argv[argc-1-index] = swap;
+   }
+  return;
+} 
 
 /* Pushes the SIZE bytes in BUF onto the stack in KPAGE, whose
    page-relative stack pointer is *OFS, and then adjusts *OFS
@@ -623,82 +634,6 @@ setup_stack (const char *cmd_line, void **esp)
         palloc_free_page (kpage);
     }
   return success;
-  /*uint8_t *kpage;
-  bool success = false;
-  char *token;
-  char **argv = malloc(DEFAULT_ARGV_SIZE*sizeof(char *));
-  int index = 0, alignment = 0;
-  int argc = 0, argvSize = DEFAULT_ARGV_SIZE;
-  char * save_ptr;
-  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  if (kpage != NULL)
-    {
-      uint8_t *upage = ((uint8_t *) PHYS_BASE) - PGSIZE;
-      success = install_page (upage, kpage, true);
-      if (success)
-      {
-        //*esp = PHYS_BASE;
-      }
-      else
-        palloc_free_page (kpage);
-        return success;
-    }
-  token = strtok_r(cmd_line, " ", &save_ptr);
-  for(token = strtok_r(NULL, " ", &save_ptr); token != NULL; token = strtok_r(NULL, " ", &save_ptr))
-  {
-    printf("top of loop\n");
-    //Add the next token to argv, then increment argc
-    *esp -= strlen(token) + 1;
-    argv[argc] = *esp;
-    argc++;
-
-    //If we need more space in argv, double its length.
-    if (argvSize <= argc)
-    {
-      argvSize *= 2;
-      argv = realloc(argv, argvSize*sizeof(char*));
-    }
-
-    //Write into the stack.
-    memcpy(*esp, token, strlen(token) + 1);
-    printf("bottom of loop\n");
-  }
-
-  argv[argc] = 0;
-
-  //We must have esp aligned to four bytes (the word size).
-  //Re-copy the last argument if we need to adjust for this.
-  alignment = (size_t) *esp % WORD_SIZE;
-  if(alignment > 0)
-  {
-    *esp -= alignment;
-    memcpy(*esp, &argv[argc], alignment);
-  }
-
-  //Push pointers to argv onto the stack (reverse order).
-  for (index = argc; index >= 0; --index)
-  {
-    *esp -= sizeof(char *);
-    memcpy(*esp, &argv[index], sizeof(char*));
-  }
-
-  //Push argv onto the stack
-  token = *esp;
-  *esp -= sizeof(char**);
-  memcpy(*esp, &token, sizeof(char **));
-
-  //Push argc onto the stack
-  *esp -= sizeof(int);
-  memcpy(*esp, &argc, sizeof(int));
-
-  //Finally, push a fake return address.
-  *esp -= sizeof(void *);
-  memcpy(*esp, &argv[argc], sizeof(void *));
-
-  //Done with local copy of argv (it's all been copied into esp)
-  free(argv);
-
-  return success;*/
 }
 
 /* Adds a mapping from user virtual address UPAGE to kernel

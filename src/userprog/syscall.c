@@ -58,12 +58,12 @@ syscall_handler (struct intr_frame *f UNUSED)
   static const struct syscall syscall_table[]=
   {
 		{0, (syscall_function *) sys_halt},
-    	{1, (syscall_function *) sys_exit},
-    	{1, (syscall_function *) sys_exec},
+    {1, (syscall_function *) sys_exit},
+    {1, (syscall_function *) sys_exec},
 		{1, (syscall_function *) sys_wait},
 		{2, (syscall_function *) sys_create},
 		{1, (syscall_function *) sys_remove},
-    	{1, (syscall_function *) sys_open},
+    {1, (syscall_function *) sys_open},
 		{1, (syscall_function *) sys_filesize},
 		{3, (syscall_function *) sys_read},
 		{3, (syscall_function *) sys_write},
@@ -127,11 +127,11 @@ put_user (uint8_t *udst, uint8_t byte)
 static void
 copy_in (void *dst_, const void *usrc_, size_t size) 
 {
-  uint8_t *dst = dst_;
-  const uint8_t *usrc = usrc_;
- 
+	uint8_t *dst = dst_;
+	const uint8_t *usrc = usrc_;
+
   for (; size > 0; size--, dst++, usrc++) 
-    if (usrc >= (uint8_t *) PHYS_BASE || !get_user (dst, usrc)) 
+		if (usrc >= (uint8_t *) PHYS_BASE || !get_user (dst, usrc)) 
       thread_exit ();
 }
  
@@ -154,11 +154,11 @@ copy_in_string (const char *us)
  
   for (length = 0; length < PGSIZE; length++)
     {
-      if (us >= (char *) PHYS_BASE || !get_user (ks + length, us++)) 
-        {
-          palloc_free_page (ks);
-          thread_exit (); 
-        }
+      if (us >= (char *) PHYS_BASE || !get_user ((uint8_t *)(ks + length), (uint8_t *) (us++))) 
+      {
+        palloc_free_page (ks);
+        thread_exit (); 
+      }
       if (ks[length] == '\0')
         return ks;
     }
@@ -186,75 +186,83 @@ sys_exit (int exit_code)
 static int
 sys_exec (const char *ufile) 
 {
-/* Add code */
-  /*lock_acquire (&fs_lock);
-  int ret = process_execute(ufile);
+  int ret = -1;
+	if(!verify_user(ufile))
+		return sys_exit(-1);
+  lock_acquire (&fs_lock);
+	ret = process_execute(ufile);
   lock_release (&fs_lock);
-  return ret;*/
-  thread_exit ();
+  return ret;
 }
  
 /* Wait system call. */
 static int
-sys_wait (tid_t child) 
+sys_wait (tid_t child)
 {
-/* Add code */
-  //return process_wait(child);
-  thread_exit ();
+	if(child == (tid_t) NULL)
+		return sys_exit(-1);
+	return process_wait(child);
 }
  
 /* Create system call. */
 static int
 sys_create (const char *ufile, unsigned initial_size) 
 {
-    if (ufile == NULL)
-      return sys_exit (-1);
-    
+  if (!verify_user(ufile))
+    return sys_exit (-1);
+  if(ufile != NULL)
     return filesys_create (ufile, (off_t) initial_size);
+	return -1;
 }
  
 /* Remove system call. */
 static int
 sys_remove (const char *ufile) 
 {
-      if(!ufile)
-          return sys_exit(-1);
+	if(!verify_user(ufile))
+		return sys_exit(-1);
 
-      return filesys_remove(ufile);
+	return filesys_remove(ufile);
 }
  
 /* A file descriptor, for binding a file handle to a file. */
 struct file_descriptor
-  {
-    struct list_elem elem;      /* List element. */
-    struct file *file;          /* File. */
-    int handle;                 /* File handle. */
-  };
+{
+  struct list_elem elem;      /* List element. */
+  struct file *file;          /* File. */
+  int handle;                 /* File handle. */
+};
  
 /* Open system call. */
 static int
 sys_open (const char *ufile) 
 {
+	if(!verify_user(ufile))
+	{
+		thread_exit();
+		return -1;
+	}
   char *kfile = copy_in_string (ufile);
   struct file_descriptor *fd;
   int handle = -1;
   fd = malloc (sizeof *fd);
+
   if (fd != NULL)
-    {
+  {
 	  lock_acquire (&fs_lock);
-      fd->file = filesys_open (kfile);
-      if (fd->file != NULL)
-      {
-	    struct thread *cur = thread_current ();
-          handle = fd->handle = cur->next_handle++;
-          list_push_front (&cur->fds, &fd->elem);
-      }
-      else
-      { 
-          free (fd);
-	}
-      lock_release (&fs_lock);
+    fd->file = filesys_open (kfile);
+    if (fd->file != NULL)
+    {
+		  struct thread *cur = thread_current ();
+      handle = fd->handle = cur->next_handle++;
+      list_push_front (&cur->fds, &fd->elem);
     }
+    else
+    { 
+      free (fd);
+		}
+    lock_release (&fs_lock);
+  }
   
   palloc_free_page (kfile);
   return handle;
@@ -286,17 +294,19 @@ static int
 sys_filesize (int handle) 
 {
   struct file_descriptor * fd;
-    
+  off_t rtn = -1;    
+
   if(handle != STDIN_FILENO)
   {
     fd = lookup_fd(handle);
+		lock_acquire (&fs_lock);
     if(fd != NULL)
     {
-      return file_length(fd->file);
+      rtn = file_length(fd->file);
     }
+  	lock_release (&fs_lock);
   }
-  return -1;
-  thread_exit ();
+	return rtn;
 }
  
 /* Read system call. */
@@ -304,25 +314,21 @@ static int
 sys_read (int handle, void *udst_, unsigned size) 
 {
   struct file_descriptor * fd;
-
-  /*if(handle != STDOUT_FILENO && !udst_ && size > 0)
-  {
-    fd = lookup_fd(handle);
-    if(!fd)
-    {
-      file_read(fd->file, udst_, size);
-      return udst_;
-    }
-  }*/
+	if(!verify_user(udst_))
+	{
+		thread_exit();
+		return -1;
+	}
+  
   if( handle == STDIN_FILENO )
   {
-	int i;
+		unsigned i;
     uint8_t *buffer = (uint8_t *) udst_;
     for(i = 0; i < size; i++)
-	{
+		{
       buffer[i] = input_getc();
-	}
-	return size;
+		}
+		return size;
   }
   lock_acquire (&fs_lock);
   fd = lookup_fd(handle);
@@ -366,10 +372,10 @@ sys_write (int handle, void *usrc_, unsigned size)
 
       /* Do the write. */
       if (handle == STDOUT_FILENO)
-        {
-          putbuf (usrc, write_amt);
-          retval = write_amt;
-        }
+      {
+        putbuf (usrc, write_amt);
+        retval = write_amt;
+      }
       else
         retval = file_write (fd->file, usrc, write_amt);
       if (retval < 0) 
@@ -397,17 +403,18 @@ sys_write (int handle, void *usrc_, unsigned size)
 static int
 sys_seek (int handle, unsigned position) 
 {
-	/* Add code */
   struct file_descriptor * fd;
-    
-	//if(handle != STDIN_FILENO)
+  off_t rtn = -1;    
+
+  fd = lookup_fd(handle);
+	lock_acquire (&fs_lock);
+  if(fd != NULL)
   {
-    fd = lookup_fd(handle);
-    if(fd != NULL)
-    {
-      file_seek(fd->file, (off_t) position);
-    }
+    file_seek(fd->file, (off_t) position);
+		rtn = 1;
   }
+	lock_release (&fs_lock);
+	return rtn;
   //thread_exit ();
 }
  
@@ -417,16 +424,17 @@ sys_tell (int handle)
 {
   /* Add code */
   struct file_descriptor * fd;
-    
-  if(handle != STDIN_FILENO)
+	off_t rtn = -1;    
+
+  fd = lookup_fd(handle);
+	lock_acquire (&fs_lock);
+  if(fd != NULL)
   {
-    fd = lookup_fd(handle);
-    if(fd != NULL)
-    {
-      return file_tell(fd->file);
-    }
+    rtn = file_tell(fd->file);
   }
-  thread_exit ();
+	lock_release (&fs_lock);
+
+	return rtn;
 }
  
 /* Close system call. */

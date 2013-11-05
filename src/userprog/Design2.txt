@@ -8,9 +8,9 @@
 
 >> Fill in the names of your group members.
 
-FirstName LastName
-FirstName LastName
-FirstName LastName
+Joseph Janssen      <jj441@ksu.edu>
+Daniel Moore        <dmoore@ksu.edu>
+Jed Oesterreich     <jedediah@ksu.edu>
 
 ---- PRELIMINARIES ----
 
@@ -30,19 +30,37 @@ FirstName LastName
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+No new structres were required.
+
 ---- ALGORITHMS ----
 
 >> A2: Briefly describe how you implemented argument parsing.  How do
 >> you arrange for the elements of argv[] to be in the right order?
 >> How do you avoid overflowing the stack page?
 
+The un-parsed command line first enters setup_stack. We create a new page, and proceed to
+init_cmd_line. Here, we first create a working copy of the command line string, and prepare to parse it.
+When parsing,  we do this process intentionally backwards, which helps to avoid overflowing stack pages.
+Once done, we then perform a simple reveral on the elements of argv, via reverse().
+
 ---- RATIONALE ----
 
 >> A3: Why does Pintos implement strtok_r() but not strtok()?
 
+The C strtok() function internally remembers the location of the last token. This is not
+suitable behavior for us, because it would be possible for several threads to try to use strtok()
+at the same time. This would mean that one thread would be accessing the wrong token, which is 
+obviously a bad thing, as crashing would probabaly result.
+
 >> A4: In Pintos, the kernel separates commands into an executable name
 >> and arguments.  In Unix-like systems, the shell does this
 >> separation.  Identify at least two advantages of the Unix approach.
+
+1) The shell program has a change to perform checks on the given arguments, before giving control to the kernel.
+We could catch a blank command or invalid characters before using the kernel, for example.
+
+2) The shell program would be required to allocate memory, not the kernel. The kernel's memory is typically more limited
+than user memory, plus the kernel is likely to crash if it runs out.
 
 			     SYSTEM CALLS
 			     ============
@@ -53,14 +71,26 @@ FirstName LastName
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+No new structures were required.
+
 >> B2: Describe how file descriptors are associated with open files.
 >> Are file descriptors unique within the entire OS or just within a
 >> single process?
+
+B2:
+A file descriptor is a number given to a process to associate an open file. 
+It has to be greater than 2 because 0, 1, and 2 are already used. File descriptors
+are unique to the single process. This allows different processes to share the
+same open files without needing the same file descriptors.
 
 ---- ALGORITHMS ----
 
 >> B3: Describe your code for reading and writing user data from the
 >> kernel.
+
+B3:
+It checks to make sure that the user data address is in user space. It then
+calls asm which moves one byte to the kernal.
 
 >> B4: Suppose a system call causes a full page (4,096 bytes) of data
 >> to be copied from user space into the kernel.  What is the least
@@ -69,8 +99,17 @@ FirstName LastName
 >> for a system call that only copies 2 bytes of data?  Is there room
 >> for improvement in these numbers, and how much?
 
+Each byte required one call to pagedir_get_page(), since we do not know how many
+bytes pointed to by the user lie on the same page. For both 2 and 4,096 bytes, we
+should require two calls at most (each number of bytes can be split into 2 pages at most).
+
 >> B5: Briefly describe your implementation of the "wait" system call
 >> and how it interacts with process termination.
+
+B5:
+The wait system call just calls process_wait. process_wait gets the child threads tid
+and does a sema_down on that threads wait_status. This blocks the parent thread until
+the child thread is dead.
 
 >> B6: Any access to user program memory at a user-specified address
 >> can fail due to a bad pointer value.  Such accesses must cause the
@@ -86,12 +125,23 @@ FirstName LastName
 >> paragraphs, describe the strategy or strategies you adopted for
 >> managing these issues.  Give an example.
 
+B6:
+The best way to do this would be to have a function that handles all your errors for you so that when a
+pointer error, or any error, like this happens your function can clean up all of your resources that are allocated.
+
+One of the ways we handle this is by using the sys_exit function which sets the current running threads exit code equal
+to the code provided and then calls the thread_exit function which handles any resources that the thread might have had allocated.
+
 ---- SYNCHRONIZATION ----
 
 >> B7: The "exec" system call returns -1 if loading the new executable
 >> fails, so it cannot return before the new executable has completed
 >> loading.  How does your code ensure this?  How is the load
 >> success/failure status passed back to the thread that calls "exec"?
+
+B7:
+A lock for the file system is placed around the executing of the new process which insures that the new status
+of the new process is passed back before anything else can be done to the file system.
 
 >> B8: Consider parent process P with child process C.  How do you
 >> ensure proper synchronization and avoid race conditions when P
@@ -100,37 +150,31 @@ FirstName LastName
 >> terminates without waiting, before C exits?  After C exits?  Are
 >> there any special cases?
 
+B8:
+We prevent race conditions by waiting on the child process before we finish the work that is dependent on what the child process was doing.
+We ensure that all of the childs resources are freed by calling release child which frees all of the processes resources.
+If P terminates without waiting then a kill signal is sent to C so that there isn't any zombie processes running around taking time from the cpu.
+
 ---- RATIONALE ----
 
 >> B9: Why did you choose to implement access to user memory from the
 >> kernel in the way that you did?
 
+B9:
+Because there was checks that consistently had to be made, like making sure that the memory location was actually your memory and insuring that it was not corrupted. 
+We also choose to only allow one process at a time to read or write to memory. We did this because it was in the design we were to follow, and because it is easier to 
+implement.
+
 >> B10: What advantages or disadvantages can you see to your design
 >> for file descriptors?
+
+B10:
+Some advantages were that implementation was easier, as well as there shouldn't be any race conditions with the file system.
+Some disadvantages are that only one file can be messed with at a time and if an extensive write comes along that will tie up the 
+file system and no one will be able to use it until the write is completed.
 
 >> B11: The default tid_t to pid_t mapping is the identity mapping.
 >> If you changed it, what advantages are there to your approach?
 
-			   SURVEY QUESTIONS
-			   ================
+B11:
 
-Answering these questions is optional, but it will help us improve the
-course in future quarters.  Feel free to tell us anything you
-want--these questions are just to spur your thoughts.  You may also
-choose to respond anonymously in the course evaluations at the end of
-the quarter.
-
->> In your opinion, was this assignment, or any one of the three problems
->> in it, too easy or too hard?  Did it take too long or too little time?
-
->> Did you find that working on a particular part of the assignment gave
->> you greater insight into some aspect of OS design?
-
->> Is there some particular fact or hint we should give students in
->> future quarters to help them solve the problems?  Conversely, did you
->> find any of our guidance to be misleading?
-
->> Do you have any suggestions for the TAs to more effectively assist
->> students, either for future quarters or the remaining projects?
-
->> Any other comments?
