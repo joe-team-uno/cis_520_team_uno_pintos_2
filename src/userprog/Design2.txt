@@ -60,7 +60,7 @@ obviously a bad thing, as crashing would probabaly result.
 We could catch a blank command or invalid characters before using the kernel, for example.
 
 2) The shell program would be required to allocate memory, not the kernel. The kernel's memory is typically more limited
-than user memory, plus the kernel is likely to crash if it runs out.
+than user memory, plus the kernel is likely to crash if it runs out. Using the shell prevents this issue.
 
 			     SYSTEM CALLS
 			     ============
@@ -176,5 +176,7 @@ file system and no one will be able to use it until the write is completed.
 >> B11: The default tid_t to pid_t mapping is the identity mapping.
 >> If you changed it, what advantages are there to your approach?
 
-B11:
+We did not change the system from identity mapping. This works for our purposes, because each process may only contain one thread.
+This is good because it's a very easy solution, but not good because it will fail on a multiprocess system. A global pid counter
+could be implemented to resolve this.
 
